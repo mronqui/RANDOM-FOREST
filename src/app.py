@@ -1,15 +1,51 @@
 
+import numpy as np 
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-titanic_model = pickle.load(open('../models/titanic_model.pickle', 'rb'))
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
 
-#Predict using the model
-#predigo el target y para los valores seteados, selecciono cualquiera para ver
-input_data = (3,0,35,0,0)
-input_data_as_numpy_array = np.asarray(input_data)
-input_data_reshaped = input_data_as_numpy_array.reshape(1,-1)
-prediction = titanic_model.predict(input_data_reshaped)
-#print(prediction)
-if prediction[0]==0:
-    print("Dead")
-if prediction[0]==1:
-    print("Alive")
+from flask import Flask, request, render_template
+import pickle
+
+
+url = "https://raw.githubusercontent.com/4GeeksAcademy/random-forest-project-tutorial/main/titanic_train.csv"
+df = pd.read_csv(url)
+
+#No tienen valor predictivo la elimino
+df =df.drop(['Cabin','PassengerId','Ticket','Name','SibSp'],axis=1)
+
+#
+df["Sex"]=df["Sex"].map({"male":1,"female":0})
+df["Embarked"]=df["Embarked"].map({"S":2,"C":1,"Q":0})
+
+df['Age_clean']=df['Age'].fillna(29)
+df=df.drop(['Age'],axis=1)
+
+X=df.drop(columns=['Survived'])
+y = df[['Survived']]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=520, test_size=0.2)
+
+#Uso RandomForestClassifier
+modelo = RandomForestClassifier(n_estimators=20, random_state=42, max_depth=5)
+modelo.fit(X_train, y_train)
+
+y_train_pred=modelo.predict(X_train)
+y_test_pred=modelo.predict(X_test)
+
+#target_names = ['Muere', 'Vive']
+#print(classification_report(y_train, y_train_pred, target_names=target_names))
+#print(classification_report(y_test, y_test_pred, target_names=target_names))
+
+filename = '../models/titanic_model.pickle'
+pickle.dump(modelo, open(filename, 'wb'))
+
+#filename = 'titanic_finalized_model.sav'
+#pickle.dump(model, open(filename, 'wb'))
+
+
+
